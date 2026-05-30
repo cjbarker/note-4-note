@@ -25,7 +25,8 @@ browser with [OpenSheetMusicDisplay](https://opensheetmusicdisplay.org/).
   re-running the neural model.
 - 🔊 **In-browser playback** — hear the transcription on a sampled piano (with a piano-roll).
 - 🅰️🅱️ **A/B against your recording** — play the original audio next to the transcription to QA by ear.
-- ⬇️ **Downloads** — export the score as **MusicXML** and the transcription as **MIDI**.
+- 🖨️ **Export the chart** — download the engraved score as **PDF** (multi-page A4), **PNG**, or **SVG** (rendered client-side, matching what's on screen).
+- ⬇️ **Downloads** — also export the raw **MusicXML** and the transcription as **MIDI**.
 - 🔌 **Format-agnostic API** — `POST /api/transcribe` accepts any audio format (ffmpeg-backed),
   so `curl`/mobile/other clients work, not just this UI.
 
@@ -85,8 +86,8 @@ npm run dev                   # serves http://localhost:5173
 ```
 Open http://localhost:5173, upload a piano clip **or** click *Record mic*. The
 sheet music renders on a grand staff with **tempo / time-signature controls**
-(instant re-notation), **Original vs Transcription** playback for A/B QA, and
-download buttons for MusicXML and MIDI.
+(instant re-notation), **Original vs Transcription** playback for A/B QA,
+**Export chart** buttons (PDF / PNG / SVG), and raw MusicXML/MIDI downloads.
 
 ## Testing
 ```bash
