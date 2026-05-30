@@ -15,16 +15,32 @@ rather than simple pitch detection. The resulting MIDI is quantized and converte
 to **MusicXML** with [music21](https://www.music21.org/), then engraved in the
 browser with [OpenSheetMusicDisplay](https://opensheetmusicdisplay.org/).
 
+## Features
+
+- 🎙️ **Two ways in** — upload an audio file *or* record live from the mic in the browser.
+- 🎹 **Polyphonic transcription** — chords and overlapping notes via Spotify basic-pitch.
+- 🎼 **Grand-staff notation** — output engraved on treble + bass staves (split at middle C).
+- 🕐 **Tempo & time-signature controls** — tempo is auto-estimated (librosa) and editable;
+  pick the time signature. Changes **re-render instantly via `/api/renotate`** without
+  re-running the neural model.
+- 🔊 **In-browser playback** — hear the transcription on a sampled piano (with a piano-roll).
+- 🅰️🅱️ **A/B against your recording** — play the original audio next to the transcription to QA by ear.
+- ⬇️ **Downloads** — export the score as **MusicXML** and the transcription as **MIDI**.
+- 🔌 **Format-agnostic API** — `POST /api/transcribe` accepts any audio format (ffmpeg-backed),
+  so `curl`/mobile/other clients work, not just this UI.
+
 ```
 audio (file or mic)
    └─ browser: decode + downmix → mono WAV  (fast path)
        └─ POST /api/transcribe
            ├─ backend: decode any format (ffmpeg fallback) → 22.05 kHz mono WAV
+           ├─ librosa → estimate tempo
            ├─ basic-pitch → polyphonic MIDI
-           ├─ music21 → quantize → MusicXML
+           ├─ music21 → quantize → grand staff (treble + bass) → MusicXML
            └─ → { musicXml, midiBase64, stats }
-               └─ frontend: OpenSheetMusicDisplay renders the score
-                              + html-midi-player plays the MIDI back (sampled piano)
+               └─ frontend: OpenSheetMusicDisplay renders the grand staff
+                  ├─ tweak tempo / time signature → POST /api/renotate (fast, no model)
+                  └─ html-midi-player plays the MIDI (sampled piano) + A/B vs original
 ```
 
 ## Architecture
@@ -81,7 +97,9 @@ decode → transcribe → notation pipeline (it loads the model, so first run is
 
 ## Scope (v1) & known limitations
 - **Piano only** — single instrument, no source separation.
-- Time signature defaults to **4/4**; key is estimated by music21.
+- Time signature defaults to **4/4** (adjustable in the UI); key is estimated by music21.
+- Tempo is auto-estimated and editable, but the rhythmic grid is fixed to 16th notes
+  (no triplets/tuplets yet).
 - Recordings are transcribed **after you stop** (no real-time streaming yet).
 - Accuracy is model-bounded: fast/dense passages, soft notes, and sustain-pedal
   blur can transcribe imperfectly. Detection thresholds are tunable in
