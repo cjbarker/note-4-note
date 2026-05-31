@@ -115,3 +115,6 @@ backend (ruff + pytest) and frontend (lint + format + build + test) — on every
 - Accuracy is model-bounded: fast/dense passages, soft notes, and sustain-pedal
   blur can transcribe imperfectly. Detection thresholds are tunable in
   `backend/app/transcription.py` (`TranscriptionParams`).
+
+## License
+[MIT](./LICENSE) © CJ Barker
