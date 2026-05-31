@@ -90,6 +90,15 @@ sheet music renders on a grand staff with **tempo / time-signature controls**
 (instant re-notation), **Original vs Transcription** playback for A/B QA,
 **Export chart** buttons (PDF / PNG / SVG), and raw MusicXML/MIDI downloads.
 
+### Run with Docker (full stack)
+```bash
+docker compose up --build      # app at http://localhost:8080
+```
+This builds the FastAPI backend (with ffmpeg + a `/api/health` healthcheck) and an
+nginx-served frontend. nginx proxies `/api` to the backend (same-origin, no CORS),
+and the frontend waits for the backend to become healthy. The backend API is also
+exposed directly on `http://localhost:8000`.
+
 ## Testing & linting
 
 Backend (pytest synthesizes known tones and runs the full
