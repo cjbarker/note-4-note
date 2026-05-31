@@ -23,7 +23,8 @@ browser with [OpenSheetMusicDisplay](https://opensheetmusicdisplay.org/).
 - 🕐 **Tempo & time-signature controls** — tempo is auto-estimated (librosa) and editable;
   pick the time signature. Changes **re-render instantly via `/api/renotate`** without
   re-running the neural model.
-- 🔊 **In-browser playback** — hear the transcription on a sampled piano (with a piano-roll).
+- 🔊 **In-browser playback** — hear the transcription on a sampled piano (with a piano-roll),
+  and a **cursor follows the engraved score** as it plays.
 - 🅰️🅱️ **A/B against your recording** — play the original audio next to the transcription to QA by ear.
 - 🖨️ **Export the chart** — download the engraved score as **PDF** (multi-page A4), **PNG**, or **SVG** (rendered client-side, matching what's on screen).
 - ⬇️ **Downloads** — also export the raw **MusicXML** and the transcription as **MIDI**.

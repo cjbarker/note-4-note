@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { midiBlobFromBase64, type TranscriptionResult, type TranscriptionStats } from "../api";
 import NotationControls from "./NotationControls";
@@ -59,6 +59,8 @@ export default function SheetMusic({ result, audioBlob }: Props) {
       osmdRef.current = new OpenSheetMusicDisplay(containerRef.current, {
         autoResize: true,
         drawTitle: false,
+        // Enable a follow cursor for score-synced playback (type 0 = standard).
+        cursorsOptions: [{ type: 0, color: "#1d7bce", alpha: 0.45, follow: true }],
       });
     }
 
@@ -79,6 +81,41 @@ export default function SheetMusic({ result, audioBlob }: Props) {
       cancelled = true;
     };
   }, [musicXml]);
+
+  // --- Score-follow cursor, driven by the MIDI player's playback events. ---
+  // Kept in a ref so the (stable) callbacks always read the current tempo,
+  // which maps playback seconds -> musical position (whole notes).
+  const bpmRef = useRef(stats.tempo_bpm);
+  useEffect(() => {
+    bpmRef.current = stats.tempo_bpm;
+  }, [stats.tempo_bpm]);
+
+  const handlePlaybackStart = useCallback(() => {
+    const cursor = osmdRef.current?.cursor;
+    if (!cursor) return;
+    cursor.reset();
+    cursor.show();
+  }, []);
+
+  const handlePlaybackNote = useCallback((startSeconds: number) => {
+    const cursor = osmdRef.current?.cursor;
+    if (!cursor) return;
+    // seconds -> quarter notes (bpm = quarter BPM) -> whole notes (4 quarters).
+    const targetWholeNotes = (startSeconds * (bpmRef.current || 120)) / 60 / 4;
+    let guard = 0;
+    while (
+      !cursor.Iterator.EndReached &&
+      cursor.Iterator.currentTimeStamp.RealValue < targetWholeNotes - 1e-6 &&
+      guard < 5000
+    ) {
+      cursor.next();
+      guard++;
+    }
+  }, []);
+
+  const handlePlaybackStop = useCallback(() => {
+    osmdRef.current?.cursor?.hide();
+  }, []);
 
   return (
     <div className="sheet-music">
@@ -112,7 +149,12 @@ export default function SheetMusic({ result, audioBlob }: Props) {
           <div className="player-block">
             <span className="playback-label">Transcription (QA)</span>
             <Suspense fallback={<span className="playback-loading">Loading player…</span>}>
-              <MidiPlayer midiBase64={midiBase64} />
+              <MidiPlayer
+                midiBase64={midiBase64}
+                onPlaybackStart={handlePlaybackStart}
+                onPlaybackNote={handlePlaybackNote}
+                onPlaybackStop={handlePlaybackStop}
+              />
             </Suspense>
           </div>
         </div>
