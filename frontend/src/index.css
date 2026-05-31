@@ -101,10 +101,18 @@ header h1 {
   margin-bottom: 0.75rem;
 }
 
+.exports,
 .downloads {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.exports-label {
+  color: #5a6072;
+  font-size: 0.85rem;
 }
 
 .notation-controls {

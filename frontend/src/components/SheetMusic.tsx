@@ -6,6 +6,7 @@ import {
   type TranscriptionStats,
 } from "../api";
 import NotationControls from "./NotationControls";
+import { exportPdf, exportPng, exportSvg } from "../export";
 
 // Lazy-loaded: html-midi-player pulls in Tone.js + @magenta/music (~2 MB), which
 // we only need once a transcription exists. Splitting it keeps initial load light.
@@ -40,6 +41,20 @@ export default function SheetMusic({ result, audioBlob }: Props) {
   // track it in state, re-initialized whenever a new transcription arrives.
   const [musicXml, setMusicXml] = useState(result.musicXml);
   const [stats, setStats] = useState<TranscriptionStats>(result.stats);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function runExport(fn: () => Promise<void> | void) {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await fn();
+    } catch (err) {
+      setExportError((err as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
   useEffect(() => {
     setMusicXml(result.musicXml);
     setStats(result.stats);
@@ -104,6 +119,41 @@ export default function SheetMusic({ result, audioBlob }: Props) {
               <MidiPlayer midiBase64={result.midiBase64} />
             </Suspense>
           </div>
+        </div>
+      )}
+
+      {stats.note_count > 0 && (
+        <div className="exports">
+          <span className="exports-label">Export chart:</span>
+          <button
+            className="button small"
+            disabled={exporting}
+            onClick={() => runExport(() => exportPdf(musicXml, "transcription.pdf"))}
+          >
+            PDF
+          </button>
+          <button
+            className="button small"
+            disabled={exporting}
+            onClick={() => runExport(() => exportPng(musicXml, "transcription.png"))}
+          >
+            PNG
+          </button>
+          <button
+            className="button small"
+            disabled={exporting}
+            onClick={() =>
+              runExport(() => {
+                const svg = containerRef.current?.querySelector("svg");
+                if (!svg) throw new Error("Score isn't rendered yet.");
+                exportSvg(svg as SVGElement, "transcription.svg");
+              })
+            }
+          >
+            SVG
+          </button>
+          {exporting && <span className="notation-status">exporting…</span>}
+          {exportError && <span className="error">{exportError}</span>}
         </div>
       )}
 
