@@ -54,8 +54,16 @@ app = FastAPI(title="Note-for-Note", version="0.3.0", lifespan=lifespan)
 
 # Allow the Vite dev server (and a configurable extra origin) to call the API.
 _origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
-if os.environ.get("FRONTEND_ORIGIN"):
-    _origins.append(os.environ["FRONTEND_ORIGIN"])
+_frontend_origin = os.environ.get("FRONTEND_ORIGIN", "").strip()
+if _frontend_origin:
+    # Validate the origin is a well-formed URL scheme before trusting it.
+    if _frontend_origin.startswith(("http://", "https://")):
+        _origins.append(_frontend_origin)
+    else:
+        logger.warning(
+            "FRONTEND_ORIGIN=%r ignored — must start with http:// or https://",
+            _frontend_origin,
+        )
 
 app.add_middleware(
     CORSMiddleware,
