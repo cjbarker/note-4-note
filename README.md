@@ -89,12 +89,21 @@ sheet music renders on a grand staff with **tempo / time-signature controls**
 (instant re-notation), **Original vs Transcription** playback for A/B QA,
 **Export chart** buttons (PDF / PNG / SVG), and raw MusicXML/MIDI downloads.
 
-## Testing
+## Testing & linting
+
+Backend (pytest synthesizes known tones and runs the full
+decode → transcribe → notation pipeline; it loads the model, so the first run is slow):
 ```bash
-cd backend && uv run pytest
+cd backend && uv run ruff check . && uv run pytest
 ```
-The suite synthesizes known tones in-memory and runs the full
-decode → transcribe → notation pipeline (it loads the model, so first run is slow).
+
+Frontend (ESLint + Prettier + Vitest):
+```bash
+cd frontend && npm run lint && npm run format && npm run test
+```
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs all of the above —
+backend (ruff + pytest) and frontend (lint + format + build + test) — on every PR.
 
 ## Scope (v1) & known limitations
 - **Piano only** — single instrument, no source separation.

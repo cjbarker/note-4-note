@@ -19,8 +19,8 @@ import shutil
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
+from fastapi.middleware.cors import CORSMiddleware
 
 from . import audio, notation, transcription
 from .schemas import (

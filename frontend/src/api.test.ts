@@ -26,7 +26,10 @@ describe("transcribe", () => {
   });
 
   it("throws the backend detail message on error", async () => {
-    vi.stubGlobal("fetch", mockFetch({ ok: false, status: 400, body: { detail: "Empty upload." } }));
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ ok: false, status: 400, body: { detail: "Empty upload." } })
+    );
 
     await expect(transcribe(new Blob([]))).rejects.toThrow("Empty upload.");
   });
@@ -51,7 +54,10 @@ describe("renotate", () => {
   });
 
   it("throws the backend detail message on error", async () => {
-    vi.stubGlobal("fetch", mockFetch({ ok: false, status: 400, body: { detail: "Renotation failed." } }));
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({ ok: false, status: 400, body: { detail: "Renotation failed." } })
+    );
 
     await expect(renotate("bad", 90, "3/4")).rejects.toThrow("Renotation failed.");
   });
