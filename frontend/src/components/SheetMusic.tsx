@@ -1,10 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
-import {
-  midiBlobFromBase64,
-  type TranscriptionResult,
-  type TranscriptionStats,
-} from "../api";
+import { midiBlobFromBase64, type TranscriptionResult, type TranscriptionStats } from "../api";
 import NotationControls from "./NotationControls";
 import { exportPdf, exportPng, exportSvg } from "../export";
 import { downloadBlob } from "../lib/download";
@@ -157,7 +153,10 @@ export default function SheetMusic({ result, audioBlob }: Props) {
         <button
           className="button small"
           onClick={() =>
-            downloadBlob(new Blob([musicXml], { type: "application/xml" }), "transcription.musicxml")
+            downloadBlob(
+              new Blob([musicXml], { type: "application/xml" }),
+              "transcription.musicxml"
+            )
           }
         >
           Download MusicXML

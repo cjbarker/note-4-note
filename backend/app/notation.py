@@ -91,7 +91,8 @@ def _split_to_grand_staff(score, split_point: int):
     Returns a new music21 Score containing two PartStaff objects joined by a
     brace StaffGroup. Raises on unexpected structure so the caller can fall back.
     """
-    from music21 import clef, layout, note as m21note, stream
+    from music21 import clef, layout, stream
+    from music21 import note as m21note
 
     flat = score.flatten()
 
@@ -119,7 +120,8 @@ def _split_to_grand_staff(score, split_point: int):
 
 def _insert_pitches(part, offset, duration, pitches):
     """Insert ``pitches`` at ``offset`` as a Note or Chord (no-op if empty)."""
-    from music21 import chord as m21chord, note as m21note
+    from music21 import chord as m21chord
+    from music21 import note as m21note
 
     if not pitches:
         return
@@ -133,7 +135,8 @@ def _insert_pitches(part, offset, duration, pitches):
 
 def _setup_part(part, time_signature: str, tempo: float | None) -> None:
     """Insert the piano instrument, time signature, and (optional) tempo mark."""
-    from music21 import instrument, meter, tempo as m21tempo
+    from music21 import instrument, meter
+    from music21 import tempo as m21tempo
 
     part.insert(0, instrument.Piano())
     part.insert(0, meter.TimeSignature(time_signature))
@@ -186,7 +189,7 @@ def midi_to_musicxml(
     finally:
         _safe_unlink(tmp_path)
 
-    with open(out, "r", encoding="utf-8") as fh:
+    with open(out, encoding="utf-8") as fh:
         xml = fh.read()
     _safe_unlink(out)
     return xml

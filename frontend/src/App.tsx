@@ -38,11 +38,13 @@ export default function App() {
 
       <AudioInput onAudioReady={handleAudioReady} disabled={busy} />
 
-      {sourceName && !error && (
-        <p className="source">Source: {sourceName}</p>
-      )}
+      {sourceName && !error && <p className="source">Source: {sourceName}</p>}
 
-      {busy && <p className="status">Transcribing… (the first run loads the model and may take a moment)</p>}
+      {busy && (
+        <p className="status">
+          Transcribing… (the first run loads the model and may take a moment)
+        </p>
+      )}
       {error && <p className="error">{error}</p>}
 
       {result && (

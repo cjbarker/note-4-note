@@ -15,7 +15,9 @@ import pytest
 import soundfile as sf
 
 from app import audio, notation
-from tests.helpers import SR, sine as _sine, wav_bytes as _wav_bytes
+from tests.helpers import SR
+from tests.helpers import sine as _sine
+from tests.helpers import wav_bytes as _wav_bytes
 
 
 def _count_measures(xml: str) -> int:

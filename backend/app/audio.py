@@ -14,7 +14,6 @@ from __future__ import annotations
 import io
 import os
 import tempfile
-from typing import Tuple
 
 import numpy as np
 import soundfile as sf
@@ -50,7 +49,7 @@ def _to_mono(samples: np.ndarray) -> np.ndarray:
     return samples
 
 
-def load_audio(data: bytes, filename: str | None = None) -> Tuple[np.ndarray, int]:
+def load_audio(data: bytes, filename: str | None = None) -> tuple[np.ndarray, int]:
     """Decode raw audio ``bytes`` to (mono float32 samples, sample_rate).
 
     Tries the dependency-free WAV path first, then falls back to librosa/ffmpeg
