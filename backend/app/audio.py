@@ -59,13 +59,11 @@ def _decode_wav(data: bytes) -> tuple[np.ndarray, int]:
         raise AudioDecodeError(f"Failed to read WAV: {exc}") from exc
 
 
-def _decode_soundfile(data: bytes) -> tuple[np.ndarray, int]:
-    """Decode FLAC/OGG via soundfile (works without ffmpeg for these formats)."""
-    try:
-        samples, sr = sf.read(io.BytesIO(data), dtype="float32", always_2d=False)
-        return _to_mono(samples), int(sr)
-    except Exception:
-        return None  # type: ignore[return-value]
+def _decode_soundfile(data: bytes) -> tuple[np.ndarray, int] | None:
+    """Decode FLAC/OGG via soundfile (works without ffmpeg for these formats).
+
+    Returns ``None`` if soundfile cannot decode the data (e.g. unsupported format).
+    """
 
 
 def _decode_librosa(data: bytes, ext: str) -> tuple[np.ndarray, int]:
