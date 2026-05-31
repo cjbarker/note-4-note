@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { renotate, transcribe } from "./api";
+import { extractFetchError, midiBlobFromBase64, renotate, transcribe } from "./api";
 
 function mockFetch(response: { ok: boolean; status?: number; body: unknown }) {
   return vi.fn().mockResolvedValue({
@@ -60,5 +60,36 @@ describe("renotate", () => {
     );
 
     await expect(renotate("bad", 90, "3/4")).rejects.toThrow("Renotation failed.");
+  });
+});
+
+describe("midiBlobFromBase64", () => {
+  it("decodes base64 into an audio/midi blob", async () => {
+    const blob = midiBlobFromBase64(btoa("MThd"));
+    expect(blob.type).toBe("audio/midi");
+    expect(blob.size).toBe(4);
+    expect(await blob.text()).toBe("MThd");
+  });
+});
+
+describe("extractFetchError", () => {
+  it("prefers the backend detail message", async () => {
+    const res = { status: 400, json: async () => ({ detail: "nope" }) } as Response;
+    expect((await extractFetchError(res)).message).toBe("nope");
+  });
+
+  it("falls back to a status message when there is no detail", async () => {
+    const res = { status: 503, json: async () => ({}) } as Response;
+    expect((await extractFetchError(res)).message).toBe("Request failed (503)");
+  });
+
+  it("falls back when the error body is not JSON", async () => {
+    const res = {
+      status: 500,
+      json: async () => {
+        throw new Error("not json");
+      },
+    } as Response;
+    expect((await extractFetchError(res)).message).toBe("Request failed (500)");
   });
 });
