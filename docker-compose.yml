@@ -1,0 +1,27 @@
+# Local/production stack: FastAPI backend + nginx-served frontend.
+# Usage: docker compose up --build  → app at http://localhost:8080
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000" # exposed for direct API access (curl/other clients)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 3
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Empty → relative /api, proxied to the backend by nginx (same-origin).
+        VITE_API_URL: ""
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
