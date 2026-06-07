@@ -24,6 +24,8 @@ import soundfile as sf
 TARGET_SR = 22050
 
 WAV_EXTENSIONS = {".wav", ".wave"}
+# Formats soundfile can decode without ffmpeg — try these before falling back.
+SOUNDFILE_EXTENSIONS = {".flac", ".ogg", ".oga", ".aiff", ".aif"}
 
 
 class AudioDecodeError(RuntimeError):
@@ -55,36 +57,45 @@ def _decode_wav(data: bytes) -> tuple[np.ndarray, int]:
     try:
         samples, sr = sf.read(io.BytesIO(data), dtype="float32", always_2d=False)
         return _to_mono(samples), int(sr)
-    except Exception as exc:  # noqa: BLE001 - surface a clean error
+    except sf.SoundFileError as exc:
         raise AudioDecodeError(f"Failed to read WAV: {exc}") from exc
 
 
-def _decode_soundfile(data: bytes) -> tuple[np.ndarray, int]:
-    """Decode FLAC/OGG via soundfile (works without ffmpeg for these formats)."""
+def _decode_soundfile(data: bytes) -> tuple[np.ndarray, int] | None:
+    """Decode FLAC/OGG via soundfile (works without ffmpeg for these formats).
+
+    Returns ``None`` if soundfile cannot decode the data (e.g. unsupported format).
+    """
     try:
         samples, sr = sf.read(io.BytesIO(data), dtype="float32", always_2d=False)
         return _to_mono(samples), int(sr)
-    except Exception:
-        return None  # type: ignore[return-value]
+    except sf.SoundFileError:
+        return None
 
 
 def _decode_librosa(data: bytes, ext: str) -> tuple[np.ndarray, int]:
     """Decode compressed audio via librosa -> audioread -> ffmpeg."""
     try:
         import librosa  # imported lazily; heavy import
-    except Exception as exc:  # noqa: BLE001
+    except ImportError as exc:
         raise AudioDecodeError(
             "librosa is required to decode non-WAV audio but is unavailable"
         ) from exc
 
     # librosa needs a file path for the audioread/ffmpeg backend, so spill to a temp file.
-    with tempfile.NamedTemporaryFile(suffix=ext or ".bin", delete=False) as tmp:
-        tmp.write(data)
-        tmp_path = tmp.name
+    tmp = tempfile.NamedTemporaryFile(suffix=ext or ".bin", delete=False)
+    tmp_path = tmp.name  # always set, so cleanup in the finally block below is safe
     try:
+        tmp.write(data)
+        tmp.close()  # close the handle so librosa can open it
         samples, sr = librosa.load(tmp_path, sr=None, mono=True)
         return np.asarray(samples, dtype=np.float32), int(sr)
-    except Exception as exc:  # noqa: BLE001
+    except OSError as exc:
+        raise AudioDecodeError(
+            "Could not decode audio. For non-WAV formats, ffmpeg must be installed "
+            f"on the server. Underlying error: {exc}"
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - covers audioread exceptions (e.g. NoBackendError)
         raise AudioDecodeError(
             "Could not decode audio. For non-WAV formats, ffmpeg must be installed "
             f"on the server. Underlying error: {exc}"
@@ -105,8 +116,9 @@ def load_audio(data: bytes, filename: str | None = None) -> tuple[np.ndarray, in
     if ext in WAV_EXTENSIONS:
         return _decode_wav(data)
 
-    # soundfile can also handle FLAC/OGG without ffmpeg; try it opportunistically.
-    if (result := _decode_soundfile(data)) is not None:
+    # soundfile can also decode FLAC/OGG/AIFF without ffmpeg; try it only for
+    # known-compatible extensions to avoid an unnecessary decode attempt.
+    if ext in SOUNDFILE_EXTENSIONS and (result := _decode_soundfile(data)) is not None:
         return result
 
     # Fallback: librosa -> audioread -> ffmpeg for everything else (mp3, m4a, webm...).
@@ -122,7 +134,7 @@ def _normalize(data: bytes, filename: str | None) -> tuple[np.ndarray, int]:
             import librosa
 
             samples = librosa.resample(samples, orig_sr=sr, target_sr=TARGET_SR)
-        except Exception as exc:  # noqa: BLE001
+        except (ValueError, OSError) as exc:
             raise AudioDecodeError(f"Failed to resample audio: {exc}") from exc
         sr = TARGET_SR
 
@@ -171,7 +183,7 @@ def estimate_tempo(samples: np.ndarray, sr: int) -> float:
         if not np.isfinite(bpm) or bpm <= 0:
             return 120.0
         return round(bpm, 1)
-    except Exception:  # noqa: BLE001 - tempo is a best-effort hint
+    except Exception:  # noqa: BLE001 - tempo is a best-effort hint; any failure is recoverable
         return 120.0
 
 

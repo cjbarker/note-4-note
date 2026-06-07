@@ -1,6 +1,6 @@
-# Note-for-Note 🎹 → 🎼
+# Note-4-Note 🎹 → 🎼
 
-Play piano, get sheet music. Note-for-Note takes audio of a piano performance —
+Play piano, get sheet music. Note-4-Note takes audio of a piano performance —
 **uploaded as a file or recorded live in the browser** — and performs
 **Automatic Music Transcription (AMT)**, converting the sound wave note-for-note
 into rendered, downloadable sheet music — engraved on a **grand staff**
@@ -126,4 +126,4 @@ backend (ruff + pytest) and frontend (lint + format + build + test) — on every
   `backend/app/transcription.py` (`TranscriptionParams`).
 
 ## License
-[MIT](./LICENSE) © CJ Barker
+[Apache 2.0](./LICENSE) © CJ Barker
