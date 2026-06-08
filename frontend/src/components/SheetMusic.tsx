@@ -12,6 +12,15 @@ const MidiPlayer = lazy(() => import("./MidiPlayer"));
 interface Props {
   result: TranscriptionOutput;
   audioBlob: Blob | null;
+  sourceName: string | null;
+}
+
+// Derive a clean filename base from the source file name (strip extension,
+// remove characters that are unsafe for filenames).
+function filenameBase(name: string | null): string {
+  if (!name) return "transcription";
+  const base = name.replace(/\.[^.]+$/, "");
+  return base.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
 // Plays back the user's original recording, for A/B comparison with the MIDI.
@@ -21,7 +30,7 @@ function OriginalAudio({ blob }: { blob: Blob }) {
   return <audio className="orig-audio" controls src={url} aria-label="Original recording" />;
 }
 
-export default function SheetMusic({ result, audioBlob }: Props) {
+export default function SheetMusic({ result, audioBlob, sourceName }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
 
@@ -179,14 +188,14 @@ export default function SheetMusic({ result, audioBlob }: Props) {
           <button
             className="button small"
             disabled={exporting}
-            onClick={() => runExport(() => exportPdf(musicXml, "transcription.pdf"))}
+            onClick={() => runExport(() => exportPdf(musicXml, `${filenameBase(sourceName)}.pdf`))}
           >
             PDF
           </button>
           <button
             className="button small"
             disabled={exporting}
-            onClick={() => runExport(() => exportPng(musicXml, "transcription.png"))}
+            onClick={() => runExport(() => exportPng(musicXml, `${filenameBase(sourceName)}.png`))}
           >
             PNG
           </button>
@@ -197,7 +206,7 @@ export default function SheetMusic({ result, audioBlob }: Props) {
               runExport(() => {
                 const svg = containerRef.current?.querySelector("svg");
                 if (!svg) throw new Error("Score isn't rendered yet.");
-                exportSvg(svg as SVGElement, "transcription.svg");
+                exportSvg(svg as SVGElement, `${filenameBase(sourceName)}.svg`);
               })
             }
           >
@@ -214,7 +223,7 @@ export default function SheetMusic({ result, audioBlob }: Props) {
           onClick={() =>
             downloadBlob(
               new Blob([musicXml], { type: "application/xml" }),
-              "transcription.musicxml"
+              `${filenameBase(sourceName)}.musicxml`
             )
           }
         >
@@ -222,7 +231,7 @@ export default function SheetMusic({ result, audioBlob }: Props) {
         </button>
         <button
           className="button small"
-          onClick={() => downloadBlob(midiBlobFromBase64(midiBase64), "transcription.mid")}
+          onClick={() => downloadBlob(midiBlobFromBase64(midiBase64), `${filenameBase(sourceName)}.mid`)}
         >
           Download MIDI
         </button>

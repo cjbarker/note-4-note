@@ -51,7 +51,7 @@ export default function App() {
       {result && (
         <ErrorBoundary label="the score">
           <Suspense fallback={<p className="status">Loading score…</p>}>
-            <SheetMusic result={result} audioBlob={audioBlob} />
+            <SheetMusic result={result} audioBlob={audioBlob} sourceName={sourceName} />
           </Suspense>
         </ErrorBoundary>
       )}
