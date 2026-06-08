@@ -5,9 +5,12 @@ a mature MIDI->notation engine). The notes are:
   1. re-timed to a chosen/estimated tempo (basic-pitch bakes in 120 BPM, and
      music21 derives note *values* from tempo, so the tempo must be right for
      durations to be correct),
-  2. quantized to a 16th-note grid at import,
-  3. split by pitch into a treble + bass grand staff, and
-  4. given a time signature and metronome mark,
+  2. legato-cleaned and pre-quantized to an eighth-note grid (fills inter-note
+     gaps from early key releases so durations match the full inter-onset
+     interval, then snaps start/end times to clean rhythmic positions),
+  3. quantized by music21 to an eighth-note grid at import,
+  4. split by pitch into a treble + bass grand staff, and
+  5. given a time signature and metronome mark,
 then serialized to MusicXML for the frontend to render with OpenSheetMusicDisplay.
 """
 
@@ -199,6 +202,62 @@ def _setup_part(part, time_signature: str, tempo: float | None) -> None:
         part.insert(0, m21tempo.MetronomeMark(number=tempo))  # type: ignore[attr-defined]
 
 
+def _legato_quantize_midi(
+    midi: pretty_midi.PrettyMIDI, tempo: float
+) -> pretty_midi.PrettyMIDI:
+    """Fill small inter-note gaps and snap times to an eighth-note grid.
+
+    basic-pitch detects note-off when the sound decays below its frame
+    threshold, which is often well before the next note starts — especially
+    with staccato playing or quick key releases.  Those gaps become spurious
+    rests and force surrounding notes into shorter, complex durations
+    (e.g. eighth + rest instead of a clean quarter note).
+
+    This two-step cleanup:
+      1. **Legato fill** — extends each note's end to meet the next note's
+         start when the gap is ≤ one beat, so note durations cover the full
+         inter-onset interval.
+      2. **Grid snap** — rounds start/end times to the nearest eighth-note
+         position so the MIDI ticks that music21 reads are already aligned to
+         clean rhythmic values.
+    """
+    beat_dur = 60.0 / tempo
+    grid = beat_dur / 2  # eighth-note grid (seconds)
+    # Notes starting within 10 % of a beat are treated as simultaneous (chord).
+    sim_thresh = beat_dur * 0.1
+
+    out = pretty_midi.PrettyMIDI(initial_tempo=float(tempo))
+    for inst in midi.instruments:
+        new_inst = pretty_midi.Instrument(
+            program=inst.program, is_drum=inst.is_drum, name=inst.name
+        )
+        notes = sorted(inst.notes, key=lambda n: n.start)
+
+        for i, n in enumerate(notes):
+            end = n.end
+            # Find the next non-simultaneous note and fill any small gap.
+            for j in range(i + 1, len(notes)):
+                if notes[j].start - n.start > sim_thresh:
+                    gap = notes[j].start - end
+                    if 0 < gap <= beat_dur:
+                        end = notes[j].start
+                    break
+
+            # Snap to the eighth-note grid.
+            start = round(n.start / grid) * grid
+            end = round(end / grid) * grid
+            if end <= start:
+                end = start + grid
+
+            new_inst.notes.append(
+                pretty_midi.Note(
+                    velocity=n.velocity, pitch=n.pitch, start=start, end=end
+                )
+            )
+        out.instruments.append(new_inst)
+    return out
+
+
 def midi_to_musicxml(
     midi: pretty_midi.PrettyMIDI,
     tempo: float | None = None,
@@ -217,17 +276,19 @@ def midi_to_musicxml(
     if tempo and tempo > 0:
         midi = _retempo_midi(midi, tempo)
 
+    # Pre-quantize note times and fill inter-note gaps so music21 receives
+    # clean rhythmic input (avoids spurious eighth + rest patterns).
+    effective_tempo = tempo if (tempo and tempo > 0) else 120.0
+    midi = _legato_quantize_midi(midi, effective_tempo)
+
     with tempfile.NamedTemporaryFile(suffix=".mid", delete=False) as tmp:
         tmp.write(midi_bytes(midi))
         tmp_path = tmp.name
 
     try:
-        # Quantize at MIDI-import time to a half-note grid. Using only the (2,)
-        # divisor (no triplets) guarantees every duration is expressible in
-        # MusicXML for the free-timed output basic-pitch produces.
-        # A 16th-note grid ((4,)) caused basic-pitch's slightly imprecise timings
-        # (e.g. 0.4 s instead of 0.5 s for quarter notes) to render as dotted
-        # eighth notes + 16th rests instead of clean quarter notes.
+        # Quantize at MIDI-import time to an eighth-note grid. Using only the
+        # (2,) divisor (no triplets) guarantees every duration is expressible
+        # in standard MusicXML notation.
         parsed = converter.parse(tmp_path, quantizePost=True, quarterLengthDivisors=(2,))  # type: ignore[attr-defined]
 
         try:

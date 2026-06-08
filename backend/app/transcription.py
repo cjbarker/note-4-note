@@ -25,7 +25,7 @@ PIANO_MAX_FREQ = 4186.0
 
 @dataclass
 class TranscriptionParams:
-    """Tunable detection thresholds (basic-pitch defaults are 0.5 / 0.3 / 127.7ms)."""
+    """Tunable detection thresholds (basic-pitch defaults)."""
 
     onset_threshold: float = 0.5
     frame_threshold: float = 0.3
