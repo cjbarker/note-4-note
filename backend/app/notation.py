@@ -222,10 +222,13 @@ def midi_to_musicxml(
         tmp_path = tmp.name
 
     try:
-        # Quantize at MIDI-import time to a 16th-note grid. Using only the (4,)
+        # Quantize at MIDI-import time to a half-note grid. Using only the (2,)
         # divisor (no triplets) guarantees every duration is expressible in
         # MusicXML for the free-timed output basic-pitch produces.
-        parsed = converter.parse(tmp_path, quantizePost=True, quarterLengthDivisors=(4,))  # type: ignore[attr-defined]
+        # A 16th-note grid ((4,)) caused basic-pitch's slightly imprecise timings
+        # (e.g. 0.4 s instead of 0.5 s for quarter notes) to render as dotted
+        # eighth notes + 16th rests instead of clean quarter notes.
+        parsed = converter.parse(tmp_path, quantizePost=True, quarterLengthDivisors=(2,))  # type: ignore[attr-defined]
 
         try:
             treble, bass = _split_to_grand_staff(parsed, split_point)
